@@ -29,12 +29,19 @@
 <h4 align="middle"> Milestone Link: https://github.com/shilpasath/cs184-finalproj-milestone</h4>		
 
 <div>
-
+	<h1> Teapot in a Stadium. </h1>
 <h2 align="middle">Abstract</h2>
-	<p>Cal Rally Com is interested in creating an interactive experience for people who attend football games to play with while they’re bored during the game, timeouts, or halftime. We think that being able to orient meshes based on an attendee's position in the football stands would be useful and all them to watch recaps. If we can orient a mesh correctly from every point in the stadium, then we can properly do things like orient the paths that players have moved during the game, the plays that each team was running, etc. 
-	</p><p> The goal of this project is to make live events more entertaining. Some hard parts of this project are figuring out where the user is in the stadium, extracting features from the stadium (corners, end goal lines, etc), and displaying the features in the correct place when you point your phone at the field.</p>
+	<p>
+	The goal of our final project was to add AR visuals to stadium performances and football games while learning about computer vision. We had a video of the field and a tabletop aerial view of the field to test with. We developed an iOS application essentially started from scratch since this is a very atypical use case for Apple’s ARKit.To accomplish real-time performance, we wrote all the heavy computation for the GPU and were forced to be clever with how we parallelized each of our image analysis steps. We developed a series of GPU kernel functions to pull lines out of each image. We then classified each pixel. Next, we identified relevant points on the field. Finally, we implemented visuals including a teapot in a stadium, teddy bear, and others. 
+	</p>
 
 <h3 align="middle">Technical Approach</h3>
+	<p>
+	We began by trying to use Hough Line Transform to identify lines in our frames, but this was too expensive and noisy when we went from tabletop demos to the field demo.
+	We noticed that the field had lots of rich segmentation information, so we developed a series of GPU kernel functions to pull this out of each image. Using logistic regression, we were able to classify each pixel as green, white, or gold. Then, we looked at these pixels’ proximity to each other to identify field lines and make guesses about their locations on the field.
+	After some denoising, we got some reasonable outputs (yellow filter, greenwhiteclean filter side by side). We raycasted from the Cal Logo to identify points on the field. This let us map a set of 2D pixel coordinates to their 3D world coordinates. Going from this data to a transformation matrix is called the perspective-three-point problem, which we solved using a public algorithm.
+	We’re still debugging the quartic equation solver it needs, so we approximated by fixing the phone’s starting location. Our final solution will be much less jittery, but we wanted to try out some visuals, including a teapot in a stadium, a teddy bear, and more…
+	</p>
 	
 <h3 align="middle">Results</h3>	
     <p> We hope to be able to do this segmentation on every frame or maybe for every other frame. We hope to be able to see how much that would impact our accuracy as well.</p>
