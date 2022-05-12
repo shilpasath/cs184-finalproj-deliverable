@@ -44,15 +44,48 @@
 <h3 align="middle">Technical Approach</h3>
 	<p>
 	We began by trying to use Hough Line Transform to identify lines in our frames. This approach bins each detected edge pixel (from Sobel detection or otherwise) into each line it could be part of. Since we represent lines in Hesse normal form, this means each pixel could be part of 180 different lines. Incrementing 180 different values constitutes 360 memory accesses per pixel. This was too expensive and noisy when we went from tabletop demos to the field demo. Furthermore, we had to run it on the CPU since the algorithm would lead to lots of memory access races when run in parallel.
-    <br /> <br />    
+    <br />
+<div align="center">
+            <img src="images/stadium_with_lines1.png" width="480px"/>
+            <figcaption align="middle">Hough transform on tabletop example.</figcaption>
+        </div>
+        <br />  
+
+           <br />
+<div align="center">
+            <img src="images/stadium_with_lines.png" width="480px"/>
+            <figcaption align="middle">Hough transform on stadium frame capture (lines all over the place).</figcaption>
+        </div>
+        <br />    
     We noticed that the field had lots of rich segmentation information, so we developed a series of GPU kernel functions to pull this out of each image. These were either kernel functions applied to each pixel or each vertical stripe of pixels. The massive parallelization of the GPU allowed us to run multiple of these functions over each pixel for every single frame while preserving 60 FPS real time performance. 
 <br /> <br />
+<div align="center">
+            <img src="images/green_detect.png" width="480px"/>
+            <figcaption align="middle">Screenshot of green-detection kernel function.</figcaption>
+        </div>
+        <br />
+        <div align="center">
+            <img src="images/greenwhiteedges.png" width="480px"/>
+            <figcaption align="middle">Screenshot of custom edge function to identify green-white gradients.</figcaption>
+        </div>
+        <br />
 In one such kernel function, we used logistic regression to classify each pixel as green, white, or gold according to its RGB values. Then, we analyzed these filtered pixels’ proximity to each other to identify field lines and make guesses about their locations on the field.
-    <br /> <br />
+    <br />
+<div align="center">
+            <img src="images/raycast.png" width="480px"/>
+            <figcaption align="middle">Raycasting overview.</figcaption>
+        </div>
+        <br />
     After some denoising, we got some reasonable outputs. We raycasted from the Cal Logo in different directions to intersect points on the field. This mapped a set of 2D pixel coordinates to their 3D world coordinates. Going from three of these mappings to a transformation matrix is called the perspective-three-point problem, which we solved using a public algorithm.
 <br /> <br />
 The goal of such an algorithm is to calculate the extrinsic matrix, establishing the relationship between the camera and the target object in 3D space. This encodes rotation and translation of the camera from a defined origin point. Then, we can multiply this matrix with an intrinsic matrix, representing the internal parameters of the camera to get the projection matrix. These internal features include known parameters like focal length and can encode simple distortions, though we plan to ignore those and assume a pinhole camera model.
 <br /> <br />
+
+<div align="center">
+            <img src="images/p3p.png" width="480px"/>
+            <figcaption align="middle">Perspective-three-point problem.</figcaption>
+        </div>
+        <br />   
 The perspective-three-point algorithm we chose involves building a quartic polynomial from those mappings and finding its roots. Then, it confirms which root is the correct solution by verifying it with a fourth point. We’ve debugged the process up to the quartic equation solver, so full position-invariant tracking does not work yet. We approximated it by fixing the phone’s starting location and carrying out some more basic trigonometry calculations using our identified points. This solution updates the tracking based on the points each frame, so it’s very subject to noise between captured frames.
 <br /> <br />
 We think we’re very close to a solution that will work from any location in the student section. Our final solution will be much less jittery as well, since we can derive a camera localization from a subset of high quality frame analyses then update the tracking using the gyroscope and accelerometer data. We can further improve this solution by using maximum likelihood estimation to compute the extrinsic parameters that most likely explain data recorded over many frames.
@@ -66,38 +99,26 @@ Finally, we plan to use Apple’s SceneKit to produce more convincing 3D visuals
     <table style="width=100%">
                 <tr>
                     <td align="middle">
-                        <img src="images/printout_edge.png" width="480px"/>
-                        <figcaption align="middle">Memorial printout after Sobel Edge Detection</figcaption>
+                        <img src="images/callogofeatures.png" width="480px"/>
+                        <figcaption align="middle">Cal Logo feature points superimposed (red triangles)</figcaption>
                     <td align="middle">
-                        <img src="images/edge2.png" width="480px"/>
-                        <figcaption align="middle">Memorial Stadium after Sobel Edge Detection</figcaption>
+                        <img src="images/fieldfeatures.png" width="480px"/>
+                        <figcaption align="middle">Other field feature points superimposed</figcaption>
                 
             </table>
 	    <table style="width=100%">
                 <tr>
-		   <td align="middle">
-                    	<img src="images/stadium_with_lines1.png" width="480px"/>
-            		<figcaption align="middle">Memorial Stadium Printout After Hough Transform</figcaption>
-                    <td align="middle">
-                        <img src="images/difference.png" width="480px"/>
-            		<figcaption align="middle">Memorial Stadium after Temporary Mask</figcaption>
-            </table>
-	    
 
-        <table style="width=100%">
-	<h4> Results from logistic regression model classifier.</h4>	
-	<tr>	
-<iframe width="480" height="315" src="https://drive.google.com/file/d/1vRUr9ojjIN97G8_pA5rMLWgO39lt1Uel/view?usp=sharing" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-<iframe width="480" height="315" src="https://drive.google.com/file/d/1gzEgrqAGZGJgLWIr2ug2iFn6k0KE9w_s/view?usp=sharing" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-	</table>
-	    <table style="width=100%">
-                <tr>
-                    <img src="images/teapot.png" width="480px"/>
-            		<figcaption align="middle">Final Result with Teapot in Stadium</figcaption>
                     <td align="middle">
-                        <img src="images/bear.png" width="480px"/>
-            		<figcaption align="middle">Bear in Stadium</figcaption>
+                        <img src="images/bearstadium.png" width="480px"/>
+                        <figcaption align="middle">Teddy bear model tracked onto football field</figcaption>
+                    <td align="middle">
+                        <img src="images/teapotstadium.png" width="480px"/>
+                        <figcaption align="middle">Utah teapot tracked onto football field</figcaption>
             </table>
+
+<h4 align="middle">Watch the video for more visuals!</h4>
+
 	
 <h3 align="middle">References</h3>
 	<li> Project 3-Point Algorithm: https://www.youtube.com/watch?v=N1aCvzFll6Q</li>
